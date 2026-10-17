@@ -15,7 +15,7 @@ manifest_path = PREPARED_DIR / 'manifest.json'
 schema_path = PREPARED_DIR / 'schema.json'
 if not manifest_path.is_file() or not schema_path.is_file():
     raise FileNotFoundError(
-        f'缺少 {manifest_path} 或 {schema_path}；请先运行 01_hmda_data_preparation.ipynb'
+        f'缺少 {manifest_path} 或 {schema_path}；请先运行 01_data_exploration.ipynb'
     )
 manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
 schema = json.loads(schema_path.read_text(encoding='utf-8'))
@@ -29,7 +29,7 @@ expected_prepared = {
 }
 require(set(manifest['output_files']) == expected_prepared, '准备文件清单不完整')
 for name, info in manifest['source_files'].items():
-    path = PROJECT_DIR / name
+    path = DATA_DIR / name
     require(path.is_file(), f'缺少原始数据：{path}')
     require(sha256_file(path) == info['sha256'], f'原始文件已变化：{name}；请先重跑 01')
 for name, info in manifest['output_files'].items():
@@ -64,7 +64,7 @@ X_test_base = read_features(PREPARED_DIR / 'test_features.csv')
 labels = pd.read_csv(PREPARED_DIR / 'train_labels.csv', dtype=str, keep_default_na=False)
 test_id_frame = pd.read_csv(PREPARED_DIR / 'test_ids.csv', dtype=str, keep_default_na=False)
 fold_frame = pd.read_csv(PREPARED_DIR / 'folds.csv', dtype=str, keep_default_na=False)
-sample_submission = pd.read_csv(PROJECT_DIR / 'sample_submission.csv', dtype=str, keep_default_na=False)
+sample_submission = pd.read_csv(DATA_DIR / 'sample_submission.csv', dtype=str, keep_default_na=False)
 
 require(labels.columns.tolist() == ['id', 'accepted'], '训练标签列不匹配')
 require(test_id_frame.columns.tolist() == ['id'], '测试 ID 列不匹配')
@@ -83,11 +83,11 @@ require(test_ids.equals(sample_submission['id']), '测试 ID 与提交模板顺�
 require(set(train_ids).isdisjoint(test_ids), '训练与测试 ID 重叠')
 require(set(labels['accepted']) == {'0', '1'}, 'accepted 需同时包含 0 和 1')
 raw_train_identity = pd.read_csv(
-    PROJECT_DIR / 'train.csv', usecols=['id', 'accepted'],
+    DATA_DIR / 'train.csv', usecols=['id', 'accepted'],
     dtype=str, keep_default_na=False,
 )
 raw_test_identity = pd.read_csv(
-    PROJECT_DIR / 'test.csv', usecols=['id'], dtype=str, keep_default_na=False,
+    DATA_DIR / 'test.csv', usecols=['id'], dtype=str, keep_default_na=False,
 )
 require(train_ids.equals(raw_train_identity['id'])
         and labels['accepted'].equals(raw_train_identity['accepted']),
