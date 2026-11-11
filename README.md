@@ -30,6 +30,7 @@ CatBoost（GPU）三组配置 × 3 个随机种子（42、2027、31415），共 
 
 ## 运行方式
 
+- **数据不在仓库中**：从 Kaggle 竞赛页面 <https://www.kaggle.com/competitions/demandes-de-pret-immobilier-aux-etats-unis/data> 下载 `train.csv`、`test.csv`、`sample_submission.csv`，放到项目根目录的 `data/` 下。
 - 整个项目文件夹放在 Google Drive 的 `Colab Notebooks/` 下，在 Colab 打开 notebook，「全部运行」。notebook 会自动找到项目里的 `data/`；本地 Jupyter 也可以运行，依赖见 `requirements.txt`。
 - **按顺序运行 01 → 05**：01 生成固定数据接口（已存在时只逐项核对，不重写），02 生成特征库，03–05 读取两者。
 - **默认只读**：所有训练开关为 `False`，只读取 `artifacts/` 中保存的结果，生成表格和图。CPU 运行时即可，每本几分钟。
@@ -45,7 +46,7 @@ CatBoost（GPU）三组配置 × 3 个随机种子（42、2027、31415），共 
 ## 目录
 
 ```
-data/                                         原始数据（只读）：train.csv、test.csv、sample_submission.csv
+data/                                         原始数据（只读，不在 Git 中，需自行下载）：train.csv、test.csv、sample_submission.csv
 01–05 *.ipynb                                 5 本 notebook
 artifacts/                                    实验结果（不在 Git 中）
   01_data_exploration/                        固定特征、标签、ID、五折、哈希清单
