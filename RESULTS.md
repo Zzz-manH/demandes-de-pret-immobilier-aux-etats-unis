@@ -39,7 +39,7 @@ Toutes les expériences utilisent les mêmes données préparées et les mêmes 
 | Ridge / forêt aléatoire avec transformations numériques | CPU | 0.8849 / 0.8898 |
 | AutoGluon (pli 1 seulement) | GPU | 0.8996 |
 
-L'écart CPU / GPU vient de l'échantillonnage par défaut (MVS sur CPU, bayésien sur GPU).
+L'écart CPU / GPU s'explique sans doute par l'échantillonnage par défaut (MVS sur CPU, bayésien sur GPU).
 
 ## Réglage de CatBoost (notebook 03)
 
@@ -52,7 +52,7 @@ Early stopping sur 15 % de la partie d'apprentissage, puis réentraînement pend
 | profondeur 8, L2 = 30 | 0.91602 | +0.00106 | 5/5 |
 | référence | 0.91495 | — | — |
 
-Sur le pli 1, l'échantillonnage Bernoulli explique à lui seul environ +0.001 ; la profondeur 10 fait moins bien.
+Sur le pli 1, l'échantillonnage Bernoulli apporte à lui seul environ +0.001 ; la profondeur 10 fait moins bien.
 
 Modes de calcul essayés ensuite (boosting ordonné, NewtonL2, Depthwise, Lossguide, Poisson, taux 0.66, 254 bins, sans combinaisons de catégories) : le mieux est 254 bins avec +0.00023 sur 4 plis, sous le critère.
 

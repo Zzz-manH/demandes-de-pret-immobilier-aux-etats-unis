@@ -39,11 +39,11 @@ Nous n'utilisons pas les données HMDA publiques : le test en vient.
 ## Exécution
 
 - **Lire seulement** : ouvrir les notebooks, les sorties sont déjà là.
-- **Réexécuter sans entraîner** : par défaut tous les boutons `TRAIN` sont à `False` et les notebooks relisent les résultats sauvegardés dans `artifacts/` (environ 290 Mo, hors dépôt). Le notebook 01 entraîne quand même un petit modèle de contrôle sur CPU et le notebook 02 réécrit les variables.
+- **Réexécuter sans entraîner** : par défaut tous les boutons `TRAIN` sont à `False` et les notebooks relisent les résultats sauvegardés dans `artifacts/` (environ 290 Mo, hors dépôt). Le notebook 01 entraîne quand même un petit modèle de contrôle sur CPU et le notebook 02 réécrit les variables. Sans `artifacts/`, le notebook 01 se réexécute entièrement à partir des CSV et recrée les données préparées, et le notebook 02 reconstruit les variables (sections 1 à 5) ; ses tableaux d'ablation et les notebooks 03 à 05 s'arrêtent ensuite faute de résultats.
 - **Tout refaire depuis les CSV** : exécuter 01, puis les sections 1 à 5 de 02 ; dans 04, activer `cv_models`, `learning_curve` et `full_refit` (GPU T4). Les notebooks 03 et 05 ne sont pas nécessaires pour la soumission finale.
 - **Sur Colab** : placer le dossier du projet dans `MyDrive/Colab Notebooks/`, ou définir `HMDA_PROJECT_DIR`.
 
-Dépendances : [requirements.txt](requirements.txt), plus `pyarrow` pour lire et écrire les variables. CatBoost est fixé à la version 1.2.10.
+Dépendances : [requirements.txt](requirements.txt). CatBoost est fixé à la version 1.2.10.
 
 ## Organisation
 
