@@ -1,5 +1,5 @@
 fixed_config(OUTPUT_DIR, {
-    'purpose': 'feature block ablation, fast GPU CatBoost, paired vs F0_base',
+    'purpose': PURPOSE_ABLATION,
     'seed': SEED,
     'fast_params': {k: v for k, v in FAST_PARAMS.items() if k != 'thread_count'},
     'data_hashes': DATA_HASHES,
@@ -13,14 +13,14 @@ for fold in FOLDS:
         result_path = OUTPUT_DIR / f'{name}__fold{fold}.json'
         if result_path.is_file():
             saved = json.loads(result_path.read_text(encoding='utf-8'))
-            require(saved['blocks'] == blocks, f'{name} 的定义已改变；请改变体名')
-            print(f'{name} fold {fold}: 已完成 AUC={saved["valid_auc"]:.6f}，跳过')
+            require(saved['blocks'] == blocks, f'{name} : définition modifiée ; renommer la variante')
+            print(f'{name} fold {fold}: terminé, AUC={saved["valid_auc"]:.6f}, ignoré')
             continue
         train, _, cats = variant_frames(blocks)
         started = time.perf_counter()
         model = catboost.CatBoostClassifier(**FAST_PARAMS)
         model.fit(train.iloc[fit_idx], y.iloc[fit_idx], cat_features=cats)
-        require(int(model.tree_count_) == FAST_PARAMS['iterations'], '轮数不符')
+        require(int(model.tree_count_) == FAST_PARAMS['iterations'], 'Nombre d’itérations incorrect')
         probability = checked_probabilities(model, train.iloc[valid_idx])
         actual = y.iloc[valid_idx]
         pd.DataFrame({'id': train_ids.iloc[valid_idx].to_numpy(), 'accepted': actual.to_numpy(),
@@ -36,6 +36,6 @@ for fold in FOLDS:
         }
         write_json(result_path, result)
         print(f'{name} fold {fold}: AUC={result["valid_auc"]:.6f}  '
-              f'{train.shape[1]} 列  {result["seconds"]/60:.1f} 分钟', flush=True)
+              f'{train.shape[1]} colonnes  {result["seconds"]/60:.1f} min', flush=True)
         del model, train
         gc.collect()

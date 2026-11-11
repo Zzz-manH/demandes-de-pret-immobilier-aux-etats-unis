@@ -17,9 +17,9 @@ unseen_rows = []
 for column in categorical_columns:
     unseen_values = sorted(set(X_test[column]) - set(X_train[column]))
     if unseen_values:
-        unseen_rows.append({"字段": column, "测试新类别数": len(unseen_values),
-                            "涉及测试行数": int(X_test[column].isin(unseen_values).sum()),
-                            "示例": ", ".join(unseen_values[:5])})
-unseen_categories = pd.DataFrame(unseen_rows, columns=["字段", "测试新类别数", "涉及测试行数", "示例"])
-display(unseen_categories)
-print("类型、缺失、数值保真与行对齐检查通过。")
+        unseen_rows.append({"Champ": column, "Nouvelles_modalités_test": len(unseen_values),
+                            "Lignes_test_concernées": int(X_test[column].isin(unseen_values).sum()),
+                            "Exemples": ", ".join(unseen_values[:5])})
+unseen_categories = pd.DataFrame(unseen_rows, columns=["Champ", "Nouvelles_modalités_test", "Lignes_test_concernées", "Exemples"])
+display_named(unseen_categories)
+print("Types, valeurs manquantes, fidélité numérique et alignement des lignes vérifiés.")

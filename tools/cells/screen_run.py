@@ -1,8 +1,8 @@
 fixed_config(OUTPUT_DIR, {
-    'purpose': 'data-efficiency screen on M3 features; inner 15% early stop, score probe model on outer fold',
+    'purpose': PURPOSE_TRAINING_MODES,
     'seed': SEED, 'inner_stop_fraction': INNER_STOP_FRACTION,
     'screen_base': {k: v for k, v in SCREEN_BASE.items() if k != 'thread_count'},
-    'features': LEAN, 'data_hashes': DATA_HASHES,
+    'features': REDUCED_FEATURE_BLOCKS, 'data_hashes': DATA_HASHES,
 })
 selected = {n: s for n, s in VARIANTS.items()
             if (RUN_ONLY is None or n in RUN_ONLY) and n not in failed}
@@ -15,8 +15,8 @@ for fold in FOLDS:
         path = OUTPUT_DIR / f'{name}__fold{fold}.json'
         if path.is_file():
             saved = json.loads(path.read_text(encoding='utf-8'))
-            require(saved['spec'] == spec, f'{name} 的定义已改变；请改变体名')
-            print(f'{name} fold {fold}: 已完成 AUC={saved["valid_auc"]:.6f}，跳过')
+            require(saved['spec'] == spec, f'{name} : définition modifiée ; renommer la variante')
+            print(f'{name} fold {fold}: terminé, AUC={saved["valid_auc"]:.6f}, ignoré')
             continue
         train, cats = frames_for(spec)
         started = time.perf_counter()
@@ -37,7 +37,7 @@ for fold in FOLDS:
                   'seconds': time.perf_counter() - started, 'gpu_name': GPU_NAME,
                   'finished_at_utc': datetime.now(timezone.utc).isoformat()}
         write_json(path, result)
-        print(f'{name} fold {fold}: AUC={result["valid_auc"]:.6f}  最佳轮数={best}  '
-              f'{result["seconds"]/60:.1f} 分钟', flush=True)
+        print(f'{name} fold {fold}: AUC={result["valid_auc"]:.6f}  meilleures itérations={best}  '
+              f'{result["seconds"]/60:.1f} min', flush=True)
         del model
         gc.collect()

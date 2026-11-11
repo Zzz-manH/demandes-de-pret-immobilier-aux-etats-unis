@@ -4,7 +4,7 @@ def read_prepared_features(path, saved_schema):
     for column in saved_schema["numeric_columns"]:
         frame[column] = pd.to_numeric(frame[column].replace("", np.nan), errors="raise").astype("float64")
     for column in saved_schema["categorical_columns"]:
-        assert frame[column].ne("").all(), f"{column}: 准备文件出现空白类别"
+        assert frame[column].ne("").all(), f"{column}: catégorie vide dans le fichier préparé"
         frame[column] = frame[column].astype(object)
     return frame
 
@@ -16,5 +16,5 @@ pd.testing.assert_frame_equal(read_text_csv(PREPARED_DIR / "train_labels.csv"), 
 pd.testing.assert_frame_equal(read_text_csv(PREPARED_DIR / "test_ids.csv"), test_ids)
 pd.testing.assert_frame_equal(read_text_csv(PREPARED_DIR / "folds.csv"), folds.astype(str))
 for name, entry in manifest["output_files"].items():
-    assert sha256_file(PREPARED_DIR / name) == entry["sha256"], f"输出哈希变化：{name}"
-print("准备文件回读、类型恢复、行对齐与 SHA-256 检查全部通过。")
+    assert sha256_file(PREPARED_DIR / name) == entry["sha256"], f"Empreinte du fichier de sortie modifiée : {name}"
+print("Relecture, types, alignement des lignes et empreintes SHA-256 vérifiés.")

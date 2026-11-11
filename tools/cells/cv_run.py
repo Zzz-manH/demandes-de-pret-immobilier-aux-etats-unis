@@ -32,7 +32,7 @@ def run_one(name, group, fold):
         best_iteration = int(probe.get_best_iteration()) + 1
         early_stopped = int(probe.tree_count_) < MAX_ITERATIONS
         if not early_stopped:
-            print(f'  注意：{name} 到 {MAX_ITERATIONS} 轮仍未早停')
+            print(f'  Attention : {name} atteint {MAX_ITERATIONS} itérations sans arrêt anticipé')
         rounds = int(round(best_iteration / (1 - INNER_STOP_FRACTION)))
         del probe
         gc.collect()
@@ -40,7 +40,7 @@ def run_one(name, group, fold):
         rounds = int(spec['iterations'])
     model = catboost.CatBoostClassifier(**model_params(spec, rounds), use_best_model=False)
     model.fit(train.iloc[fit_idx], y.iloc[fit_idx], cat_features=cats)
-    require(int(model.tree_count_) == rounds, '外层重训轮数不符')
+    require(int(model.tree_count_) == rounds, 'Nombre d’itérations incorrect pour le réentraînement externe')
     valid_prob = checked_probabilities(model, train.iloc[valid_idx])
     test_prob = checked_probabilities(model, test)
     actual = y.iloc[valid_idx]
@@ -59,7 +59,7 @@ def run_one(name, group, fold):
         'seconds': time.perf_counter() - started, 'gpu_name': GPU_NAME,
         'finished_at_utc': datetime.now(timezone.utc).isoformat(),
     }
-    write_json(Path(f'{stem}.json'), result)   # 最后写 json，作为该折完成的标志
+    write_json(Path(f'{stem}.json'), result)   # Écrire le JSON en dernier : il marque la fin du fold
     del model, train, test
     gc.collect()
     return result
@@ -71,9 +71,9 @@ for fold in FOLDS:
         result_path = OUTPUT_DIR / f'{name}__fold{fold}.json'
         if result_path.is_file():
             saved = json.loads(result_path.read_text(encoding='utf-8'))
-            require(saved['definition'] == group, f'{name} 的定义已改变；请改组名')
-            print(f'{name} fold {fold}: 已完成 AUC={saved["valid_auc"]:.6f}，跳过')
+            require(saved['definition'] == group, f'{name} : définition modifiée ; renommer le groupe')
+            print(f'{name} fold {fold}: terminé, AUC={saved["valid_auc"]:.6f}, ignoré')
             continue
         result = run_one(name, group, fold)
         print(f'{name} fold {fold}: AUC={result["valid_auc"]:.6f}  '
-              f'轮数={result["refit_rounds"]}  {result["seconds"]/60:.1f} 分钟', flush=True)
+              f'itérations={result["refit_rounds"]}  {result["seconds"]/60:.1f} min', flush=True)

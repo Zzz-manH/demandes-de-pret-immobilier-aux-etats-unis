@@ -1,6 +1,6 @@
 EXPERIMENT_ID = 'ablation_round2'
 FOLDS = [1, 2, 3, 4, 5]
-RUN_ONLY = None             # 例如 ['F0_base', 'F2_ltv']；None 表示全部变体
+RUN_ONLY = None             # Exemple : [ABLATION_INITIAL_REFERENCE, ABLATION_ADD_LTV_PRECISION] ; None sélectionne toutes les variantes
 OUTPUT_DIR = ARTIFACTS / '02_feature_engineering' / EXPERIMENT_ID
 
 FAST_PARAMS = dict(
@@ -10,20 +10,20 @@ FAST_PARAMS = dict(
     task_type='GPU', devices='0', thread_count=4,
     use_best_model=False, allow_writing_files=False, verbose=False,
 )
-ROUND1 = ['dti', 'ltv', 'income', 'missing', 'freq']     # 第一轮全部特征（F6_all）
-NO_FREQ = ['dti', 'ltv', 'income', 'missing']
+INITIAL_FEATURE_BLOCKS = ['dti', 'ltv', 'income', 'missing', 'freq']     # Toutes les variables de la première série (Toutes les variables initiales)
+CORE_FEATURE_BLOCKS = ['dti', 'ltv', 'income', 'missing']
 VARIANTS = {
-    'G0_all': ROUND1,
-    'G1_precision': ROUND1 + ['precision'],
-    'G2_thresholds': ROUND1 + ['thresholds'],
-    'G3_implied': ROUND1 + ['implied'],
-    'G4_term': ROUND1 + ['term'],
-    'G5_round2_all': ROUND1 + ['precision', 'thresholds', 'implied', 'term'],
-    # 调参后去掉地区频次的五折与公开榜都略好：检验第二轮特征加在无频次基础上
-    'G6_nofreq': NO_FREQ,
-    'G7_nofreq_round2_all': NO_FREQ + ['precision', 'thresholds', 'implied', 'term'],
+    ABLATION_INITIAL_REFERENCE: INITIAL_FEATURE_BLOCKS,
+    ABLATION_ADD_LTV_PRECISION: INITIAL_FEATURE_BLOCKS + ['precision'],
+    ABLATION_ADD_LTV_THRESHOLDS: INITIAL_FEATURE_BLOCKS + ['thresholds'],
+    ABLATION_ADD_IMPLIED_VALUE: INITIAL_FEATURE_BLOCKS + ['implied'],
+    ABLATION_ADD_TERM: INITIAL_FEATURE_BLOCKS + ['term'],
+    ABLATION_ENRICHED_WITH_COUNTS: INITIAL_FEATURE_BLOCKS + ['precision', 'thresholds', 'implied', 'term'],
+    # Après réglage, retirer les fréquences géographiques améliore légèrement CV et score public : tester la deuxième série sur cette base
+    ABLATION_CORE_WITHOUT_COUNTS: CORE_FEATURE_BLOCKS,
+    ABLATION_ENRICHED: CORE_FEATURE_BLOCKS + ['precision', 'thresholds', 'implied', 'term'],
 }
 if RUN_ONLY is not None:
     unknown = set(RUN_ONLY) - set(VARIANTS)
     if unknown:
-        raise ValueError(f'RUN_ONLY 中有未知变体：{sorted(unknown)}')
+        raise ValueError(f'Variantes inconnues dans RUN_ONLY : {sorted(unknown)}')

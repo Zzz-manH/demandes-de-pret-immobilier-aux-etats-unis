@@ -11,5 +11,5 @@ assert np.all(validation_seen == 1)
 assert set(fold_assignment.tolist()) == set(range(1, N_SPLITS + 1))
 folds = pd.DataFrame({"id": train_labels["id"], "fold": fold_assignment})
 fold_profile = train_labels.assign(fold=fold_assignment).groupby("fold")["accepted"].agg(["size", "mean"])
-fold_profile.columns = ["验证行数", "验证获批率"]
-display(fold_profile)
+fold_profile.columns = ["Lignes_validation", "Taux_approbation_validation"]
+display_named(fold_profile)

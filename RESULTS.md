@@ -1,158 +1,136 @@
-# HMDA 实验结果
+# Résultats des expériences
 
-更新：2026-10-17。所有实验使用 `artifacts/01_data_exploration/` 的同一份数据与 seed=42 固定五折（训练 105,000 行）。主指标为**五折平均 ROC AUC**；只有同一次运行、同一折上的配对差才用于决策。
+Toutes les expériences utilisent les mêmes données préparées et les mêmes cinq plis stratifiés (graine 42). Le score est l'AUC moyenne des cinq plis. Deux variantes ne sont comparées que si elles ont tourné dans la même session, pli par pli.
 
-「实验 02、07、09–19」是实验的原始编号，括号里是它现在所在的 notebook 与小节（对照见 [README.md](README.md#原实验编号对照)）。更早被取代的实验（03、04、05、08、11）只保留数字，标注「已删除」。
+## Vue d'ensemble
 
-## 最终结果与进展
-
-最终提交 [submissions/20261016_FINAL_full_Bseeds.csv](submissions/20261016_FINAL_full_Bseeds.csv)：**公开榜 0.92301**。
-
-|阶段|notebook|五折 AUC|公开榜|
+| Étape | Notebook | AUC, cinq plis | Score public |
 |---|---|---:|---:|
-|起点：CPU CatBoost R2，原始 56 列|实验 02（03 §1）|0.91604|0.91857|
-|+ 第一轮特征（LTV 重算等）+ 调参（C11）|实验 10、09（02 §6.1、03 §3；11 已删除，04 的 M0 为同配置重跑）|0.91926|0.92073|
-|+ 第二轮特征（LTV 申报精度、产品门槛）+ 三组融合|实验 12、13（02 §6.2、04 §1）|0.92051|0.92190|
-|+ 多种子|实验 15（04 §1）|0.92073|0.92197|
-|**+ 全部 105,000 行重训（最终）**|**实验 17（04 §2–3）**|学习曲线 +0.0012|**0.92301**|
+| Départ : CatBoost sur CPU, profondeur 8, 56 colonnes | 03 | 0.91604 | 0.91857 |
+| + variables de la série 1 (LTV recalculé…) et réglage | 02, 03 | 0.91926 | 0.92073 |
+| + variables de la série 2 (précision et seuils du LTV), trois modèles | 02, 04 | 0.92051 | 0.92190 |
+| + trois graines par modèle | 04 | 0.92073 | 0.92197 |
+| **+ réentraînement sur les 105 000 lignes (finale)** | 04 | — | **0.92301** |
 
-**结论**：提升来自三处——围绕 LTV 的特征（约 +0.004）、调参（约 +0.0015）、用上全部训练数据（约 +0.001）。之后的特征、训练方式、模型融合与伪标签都没有可靠收益；学习曲线显示模型受**标注数据量**限制。
+## Données (notebooks 01 et 05)
 
-## 1. 数据检查（01、05 §1）
+- Validation adversariale apprentissage / test : AUC 0.501. Prédire la cible avec l'identifiant seul : 0.496. Pas de lien entre identifiants voisins.
+- Les champs dérivés sont cohérents avec leurs champs d'origine. 13 lignes seulement sont en double sur toutes les variables.
+- Les valeurs inhabituelles ne sont pas des erreurs à nettoyer : le modèle les prédit correctement.
 
-- 训练/测试对抗验证 AUC **0.501**（分布一致）；只用 `id` 预测标签的 AUC 0.496；相邻 id 的标签相关 0.003（无顺序泄漏）。训练集占 id 区间前 70%、测试集后 30%，区间内随机。
-- 派生字段与原字段一致（如产品类型 = 贷款类型 + 留置顺序，100%）：真实 HMDA 记录，不是生成数据。
-- 完全重复的特征行只有 13 行，无矛盾标签。
-- **「异常值」是信号而不是错误**：模型在这些组上已经校准，清理会丢失信息。
-
-|情况|行数|批准率|模型预测|
+| Groupe | Lignes | Taux d'acceptation | Probabilité moyenne prédite |
 |---|---:|---:|---:|
-|全部|105,000|85%|—|
-|LTV 缺失|11,874|54%|54%|
-|普查区人口 = 0|2,117|17%|17%|
-|地区收入 = 0|1,330|24%|24%|
-|贷款额 / 房价 > 2|148|14%|14%|
-|收入 ≤ 0|954|56%|57%|
+| Toutes | 105 000 | 85 % | — |
+| LTV absent | 11 874 | 54 % | 54 % |
+| Population du secteur = 0 | 2 117 | 17 % | 17 % |
+| Revenu de la zone = 0 | 1 330 | 24 % | 24 % |
+| Prêt / valeur du bien > 2 | 148 | 14 % | 14 % |
+| Revenu ≤ 0 | 954 | 56 % | 57 % |
 
-## 2. 基线模型（实验 02 → 03 §1）
+## Modèles de départ (notebook 03)
 
-目录：`artifacts/03_model_selection/baseline_catboost_xgboost`、`baseline_logistic`
-
-|模型|平台|五折 AUC|
+| Modèle | Calcul | AUC |
 |---|---|---:|
-|CatBoost R1 50% + R2 50%|CPU|0.91608|
-|**CatBoost R2**（depth 8、1600 轮）|CPU|**0.91604**|
-|CatBoost R1（depth 6、1600 轮）|CPU|0.91507|
-|CatBoost R2（03，已删除）|GPU T4|0.91498|
-|LR（N2_INT + LTV flags）|CPU|0.90020|
-|XGBoost（固定配置）|CPU|0.89284|
+| CatBoost profondeur 8, 1 600 itérations | CPU | 0.91604 |
+| CatBoost profondeur 6, 1 600 itérations | CPU | 0.91507 |
+| CatBoost profondeur 8, mêmes paramètres | GPU | 0.91498 |
+| Régression logistique | CPU | 0.90020 |
+| XGBoost, réglage fixe | CPU | 0.89284 |
+| Ridge / forêt aléatoire avec transformations numériques | CPU | 0.8849 / 0.8898 |
+| AutoGluon (pli 1 seulement) | GPU | 0.8996 |
 
-同参数下 GPU 版低约 0.001，主要原因是 GPU 默认 Bayesian 抽样、CPU 默认 MVS 抽样（见下一节）。
+L'écart CPU / GPU vient de l'échantillonnage par défaut (MVS sur CPU, bayésien sur GPU).
 
-## 3. 调参（实验 09 → 03 §3）
+## Réglage de CatBoost (notebook 03)
 
-目录：`artifacts/03_model_selection/catboost_tuning`。协议：外层训练部分内留 15% 早停，再在整个外层训练部分按 `b / 0.85` 轮重训。B0 = GPU 上的 R2（lr 0.05、固定 1600 轮）。
+Early stopping sur 15 % de la partie d'apprentissage, puis réentraînement pendant `b / 0.85` itérations. Référence : profondeur 8 sur GPU, taux 0.05, 1 600 itérations.
 
-|候选|五折 AUC|相对 B0|更好折数|
+| Réglage | AUC | Gain | Plis |
 |---|---:|---:|---:|
-|**C7**：depth 8、lr 0.03、L2=10、Bernoulli 0.8|**0.91652**|+0.00156|5/5|
-|**C11**：depth 6、lr 0.03、L2=10、Bernoulli 0.8|0.91638|+0.00142|5/5|
-|C10：depth 8、lr 0.03、L2=30、Bernoulli 0.8|0.91602|+0.00106|5/5|
-|B0|0.91495|—|—|
+| **profondeur 8, taux 0.03, L2 = 10, Bernoulli 0.8** | **0.91652** | +0.00156 | 5/5 |
+| **profondeur 6, le reste identique** | 0.91638 | +0.00142 | 5/5 |
+| profondeur 8, L2 = 30 | 0.91602 | +0.00106 | 5/5 |
+| référence | 0.91495 | — | — |
 
-第 1 折筛选中，只加 Bernoulli 抽样一项就贡献约 +0.001；depth 10 更差（−0.0003）。
+Sur le pli 1, l'échantillonnage Bernoulli explique à lui seul environ +0.001 ; la profondeur 10 fait moins bien.
 
-## 4. 特征工程（实验 10、12 → 02 §6.1–6.2）
+Modes de calcul essayés ensuite (boosting ordonné, NewtonL2, Depthwise, Lossguide, Poisson, taux 0.66, 254 bins, sans combinaisons de catégories) : le mieux est 254 bins avec +0.00023 sur 4 plis, sous le critère.
 
-快速配置（GPU、depth 8、lr 0.05、L2=3、Bernoulli 0.8、1600 轮），同一运行配对比较。
+## Variables (notebook 02)
 
-**第一轮（实验 10）**，相对原始 56 列 F0（0.91566）。目录：`artifacts/02_feature_engineering/ablation_round1`
+Modèle rapide : profondeur 8, taux 0.05, L2 = 3, Bernoulli 0.8, 1 600 itérations.
 
-|特征块|五折 AUC|相对 F0|更好折数|
+**Série 1**, référence = 56 colonnes (0.91566)
+
+| Bloc | AUC | Gain | Plis |
 |---|---:|---:|---:|
-|**全部块（68 列）**|**0.91866**|**+0.00300**|5/5|
-|**LTV 重算（`ltv_calc`、`ltv_gap`）**|0.91775|+0.00209|5/5|
-|缺失组合|0.91588|+0.00022|4/5|
-|收入比值|0.91577|+0.00010|4/5|
-|DTI 上下界|0.91576|+0.00009|4/5|
-|地区频次|0.91553|−0.00013|1/5|
+| **Tous les blocs (68 colonnes)** | **0.91866** | **+0.00300** | 5/5 |
+| **LTV recalculé** | 0.91775 | +0.00209 | 5/5 |
+| Profil de valeurs manquantes | 0.91588 | +0.00022 | 4/5 |
+| Ratios de revenu | 0.91577 | +0.00010 | 4/5 |
+| Bornes du DTI | 0.91576 | +0.00009 | 4/5 |
+| Fréquences géographiques | 0.91553 | −0.00013 | 1/5 |
 
-**第二轮（实验 12）**，相对 G0（第一轮全部块）。目录：`artifacts/02_feature_engineering/ablation_round2`
+**Série 2**, référence = tous les blocs de la série 1 (0.91810)
 
-|特征块|五折 AUC|相对 G0|更好折数|
+| Bloc | AUC | Gain | Plis |
 |---|---:|---:|---:|
-|**G7：去掉地区频次 + 全部第二轮块（72 列）**|**0.91935**|**+0.00125**|5/5|
-|全部第二轮块（保留频次）|0.91932|+0.00122|5/5|
-|**LTV 申报精度**（整数 / 1–3 位小数）|0.91884|+0.00075|4/5|
-|**LTV 产品门槛**（区间、超出该贷款类型上限的幅度）|0.91884|+0.00074|5/5|
-|期限|0.91834|+0.00025|3/5|
-|只去掉地区频次|0.91822|+0.00012|4/5|
-|反推房价|0.91820|+0.00010|3/5|
+| **Tous les blocs de la série 2, sans les fréquences (72 colonnes)** | **0.91935** | **+0.00125** | 5/5 |
+| Tous les blocs, avec les fréquences | 0.91932 | +0.00122 | 5/5 |
+| **Précision du LTV** | 0.91884 | +0.00075 | 4/5 |
+| **Seuils du LTV** | 0.91884 | +0.00074 | 5/5 |
+| Durée | 0.91834 | +0.00025 | 3/5 |
+| Sans les fréquences seulement | 0.91822 | +0.00012 | 4/5 |
+| Valeur reconstituée | 0.91820 | +0.00010 | 3/5 |
 
-LTV 申报为整数时批准率 90.7%，两位小数 84.4%——反映不同机构的申报习惯，树模型无法从数值本身切出「是否整数」。
+Quand le LTV est déclaré en entier, 90.7 % des demandes sont acceptées, contre 84.4 % avec deux décimales.
 
-## 5. 最终模型（实验 13、15、17 → 04）
+**Série 3** (indicateurs de produit, cohérence du LTV, cumul de risques, revenu relatif au secteur) : au mieux +0.00035 sur 3 plis, rien n'est gardé.
 
-目录：`artifacts/04_final_model/cv_models`（实验 13、15）、`artifacts/04_final_model/full_refit`（实验 17）
+## Modèle final (notebook 04)
 
-**实验 13：参数 × 第二轮特征**（内层早停 → 外层重训；提交 = 五个折模型测试概率平均）
-
-|组|五折 AUC|相对 M0|更好折数|公开榜|
-|---|---:|---:|---:|---:|
-|**M1+M2+M3 等权融合**|**0.92051**|+0.00120|4/5|0.92190|
-|M3：C11 + 去频次 + 精度 + 门槛（68 列）|0.92015|+0.00085|4/5|—|
-|M2：C7 + G7（72 列）|0.91999|+0.00068|4/5|—|
-|M1：C11 + G7|0.91989|+0.00058|4/5|—|
-|M0：C11 + 第一轮 68 列（= 已删除 11 的 K2，公开榜 0.92073）|0.91931|—|—|—|
-
-**实验 15：多种子**（M1/M2/M3 各加 seed 2027、31415）
-
-|融合|五折 AUC|相对实验 13 融合|更好折数|公开榜|
-|---|---:|---:|---:|---:|
-|**B_seeds**（各 3 种子平均再等权）|**0.92073**|+0.00023|4/5|0.92197|
-|B_seeds + 10% LightGBM|0.92073|+0.00023|4/5|0.92178|
-|B_seeds + 20% / 30% LightGBM|0.92047 / 0.91999|−0.00004 / −0.00052|2/5 / 1/5|—|
-|LightGBM 两个容量等权|0.91110|−0.0094|0/5|—|
-
-**实验 17：学习曲线与全量重训**。M3 在同一折上分别用外层训练部分的 80%（67,200 行）与 100%（84,000 行）训练：
-
-|折|67k|84k|增益|
+| Modèle | AUC, graine 42 | Gain sur la référence | Plis |
 |---|---:|---:|---:|
-|1|0.91285|0.91430|+0.00145|
-|2|0.92640|0.92742|+0.00102|
-|3|0.91994|0.92075|+0.00081|
-|4|0.91499|0.91629|+0.00130|
-|5|0.92013|0.92157|+0.00144|
-|**平均**|||**+0.00120（5/5）**|
+| **Moyenne des trois** | **0.92051** | +0.00120 | 4/5 |
+| profondeur 6, jeu réduit (68 colonnes) | 0.92015 | +0.00085 | 4/5 |
+| profondeur 8, jeu enrichi (72 colonnes) | 0.91999 | +0.00068 | 4/5 |
+| profondeur 6, jeu enrichi | 0.91989 | +0.00058 | 4/5 |
+| référence : profondeur 6, variables de la série 1 | 0.91931 | — | — |
 
-M1/M2/M3 × 3 种子在全部 105,000 行上重训（轮数 = 五折重训轮数均值 × 1.25）：
+Avec trois graines par modèle : **0.92073** (score public 0.92197).
 
-|提交|公开榜|
+**Courbe d'apprentissage** (profondeur 6, jeu réduit, mêmes lignes de validation)
+
+| Pli | 67 200 lignes | 84 000 lignes | Gain |
+|---|---:|---:|---:|
+| 1 | 0.91285 | 0.91430 | +0.00145 |
+| 2 | 0.92640 | 0.92742 | +0.00102 |
+| 3 | 0.91994 | 0.92075 | +0.00081 |
+| 4 | 0.91499 | 0.91629 | +0.00130 |
+| 5 | 0.92013 | 0.92157 | +0.00144 |
+| **Moyenne** | | | **+0.00120** |
+
+**Soumissions**
+
+| Soumission | Score public |
 |---|---:|
-|**full_Bseeds（9 个全量模型，最终）**|**0.92301**|
-|hybrid_50_50（全量与折平均各半）|0.92259|
-|B_seeds（折平均）|0.92197|
+| **Neuf modèles réentraînés sur les 105 000 lignes** | **0.92301** |
+| Moitié réentraînement, moitié modèles de plis | 0.92259 |
+| Moyenne des modèles de plis | 0.92197 |
 
-## 6. 试过但没有采用的方向
+## Ce qui n'a pas marché (notebook 05)
 
-|方向|实验（现在位置）|结果|
-|---|---|---|
-|数值变换（二阶、三阶、RBF、样条、分位数）+ Ridge / RandomForest|07（03 §2）|Ridge 最多 +0.003（0.8849），RF 无益（0.8898），远低于 CatBoost|
-|AutoGluon extreme_quality（T4，第 1 折）|05（已删除；03 §1 记录）|0.89964；TabICL、TabDPT 因内存不足失败，只训练出 LightGBM|
-|第三轮特征：产品标志组合、LTV 区间一致性、风险叠加、相对普查区收入|14（02 §6.3）|最好 +0.00035（3/5），均未达标|
-|神经网络 TabM-mini（第 1 折）|16（05 §2.2）|单独 0.90878（比 CatBoost 低 0.0061），与 CatBoost 相关 0.984，融合 −0.00001 到 −0.00049|
-|测试集软伪标签（老师只用该折外层训练部分的 9 个模型）|18（05 §4）|+0.00008（3/5）；多 25% 真实标签 +0.0012，多 54% 伪标签 ≈ 0|
-|CatBoost 训练方式：有序提升、NewtonL2、Depthwise、Lossguide、Poisson、抽样 0.66、254 分箱、不做类别组合、删除重复人口统计列|19（03 §4）|254 分箱 +0.00023（4/5）最好，其余 ≤ 0，均未达标|
-|跨实验融合（13 个已保存 OOF，嵌套交叉验证选择）|05 §3|5 折中 4 折只选 B_seeds，另一折 −0.00006|
-|残差诊断（标准化残差平方均值，≈1 表示无遗漏信息；随机分组对照 1.02 / 0.86）|05 §1|普查区 0.96、县 0.97、MSA 0.90、州 1.09、机构画像 1.01、贷款类型×DTI 0.90、LTV×DTI 1.01；产品标志组合 1.77（仅 17 组，第三轮特征验证无效）|
-|同一申请人多次申请|05 §1|只涉及 0.15–0.56% 的行，模型已校准|
-|标签噪声|05 §1|把握 ≥ 98% 却判错的只有 308 行（0.29%）|
+| Piste | Résultat |
+|---|---|
+| LightGBM (31 ou 127 feuilles) | 0.9111 seul ; en mélange à 10 % : +0.00000 ; à 20 et 30 % : moins bon |
+| Réseau de neurones TabM-mini (pli 1) | 0.90878, soit 0.0061 sous CatBoost ; corrélation 0.984 ; aucun gain en mélange |
+| Pseudo-étiquettes sur le test | +0.00008, 3 plis sur 5 |
+| Mélange entre toutes les expériences, choisi par validation imbriquée | garde l'ensemble final seul dans 4 plis sur 5 |
+| Résidus par groupe (rapport proche de 1 = rien à gagner ; groupes aléatoires : 1.02) | secteur 0.96, comté 0.97, aire urbaine 0.90, État 1.09 ; indicateurs de produit 1.77 sur 17 groupes seulement |
 
-不使用公开的 HMDA 原始数据：测试集本身来自该数据，用它训练会带入测试集的真实标签。
+## Méthode
 
-## 7. 方法说明
-
-- **决策标准**：同一运行、同一折配对；常规改动要求五折平均提升 ≥ +0.0003（后期提高到 ≥ +0.0005）且至少 4/5 折为正。
-- **公开榜噪声**（05 §5）：用 OOF 模拟，随机 13,500 行（≈ 公开榜 30%）上 AUC 标准差约 0.0037。B_seeds 与 M0 的配对差标准差约 0.0006：两者相差 0.0014 时公开榜顺序颠倒的概率约 1%，相差 0.0005 时约两成。因此相差不到约 0.001 的提交以五折和学习曲线为准。
-- **GPU 运行间差异**（05 §5）：同一代码在不同 Colab 会话中逐折相差 0 到 0.0005（04 学习曲线中的 LC_full 与五折模型 M3：逐折 0 到 0.00044），小于约 0.0005 的提升视为不确定。
-- **全量模型**没有留出验证集，是否采用只依据学习曲线；公开榜结果（0.92301 > 0.92259 > 0.92197）与学习曲线预测的顺序一致。
+- **Critère** : gain moyen d'au moins 0.0003 (0.0005 pour les dernières expériences) et au moins 4 plis améliorés sur 5.
+- **Score public** : en tirant 13 500 lignes parmi les prédictions hors pli, l'écart-type de l'AUC est de 0.0037 et celui de la différence entre deux soumissions de 0.0006. Deux soumissions à moins de 0.001 d'écart ne sont pas départagées par le score public.
+- **Sessions GPU** : le même code donne jusqu'à 0.0005 d'écart par pli entre deux sessions Colab.
+- Les modèles réentraînés sur toutes les lignes n'ont pas de score de validation. Leur choix repose sur la courbe d'apprentissage ; l'ordre des scores publics (0.92301 > 0.92259 > 0.92197) va dans le même sens.

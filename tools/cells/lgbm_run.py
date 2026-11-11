@@ -6,7 +6,7 @@ except ModuleNotFoundError:
 print('LightGBM', lgb.__version__)
 
 lgb_train, lgb_test, lgb_cats = variant_frames(LGBM_BLOCKS)
-for column in lgb_cats:               # 训练+测试的类别并集作为固定词表（不涉及标签）
+for column in lgb_cats:               # Vocabulaire fixe : union des catégories train/test, sans utiliser les cibles
     dtype = pd.CategoricalDtype(sorted(set(lgb_train[column]) | set(lgb_test[column])))
     lgb_train[column] = lgb_train[column].astype(dtype)
     lgb_test[column] = lgb_test[column].astype(dtype)
@@ -55,9 +55,9 @@ for fold in FOLDS:
         path = OUTPUT_DIR / f'{name}__fold{fold}.json'
         if path.is_file():
             saved = json.loads(path.read_text(encoding='utf-8'))
-            require(saved['definition']['config'] == config, f'{name} 的定义已改变；请改名')
-            print(f'{name} fold {fold}: 已完成 AUC={saved["valid_auc"]:.6f}，跳过')
+            require(saved['definition']['config'] == config, f'{name} : définition modifiée ; renommer le modèle')
+            print(f'{name} fold {fold}: terminé, AUC={saved["valid_auc"]:.6f}, ignoré')
             continue
         result = run_lgbm(name, config, fold)
-        print(f'{name} fold {fold}: AUC={result["valid_auc"]:.6f}  轮数={result["refit_rounds"]}  '
-              f'{result["seconds"]/60:.1f} 分钟', flush=True)
+        print(f'{name} fold {fold}: AUC={result["valid_auc"]:.6f}  itérations={result["refit_rounds"]}  '
+              f'{result["seconds"]/60:.1f} min', flush=True)

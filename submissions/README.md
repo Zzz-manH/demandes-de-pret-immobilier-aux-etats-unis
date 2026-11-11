@@ -1,31 +1,25 @@
-# 提交文件与记录
+# Soumissions
 
-「实验 NN」是原始实验编号，括号里是现在所在的 notebook（对照见 [README.md](../README.md#原实验编号对照)）。
+Le score public porte sur environ 30 % du test (13 500 lignes). Deux soumissions à moins de 0.001 d'écart ne sont pas départagées par ce score : nous choisissons d'après la validation sur cinq plis et la courbe d'apprentissage.
 
-公开榜只用约 30% 测试数据（≈13,500 行），相差不到约 0.001 的提交，公开榜顺序不可靠（见 [RESULTS.md](../RESULTS.md)「方法说明」）；选模以五折与学习曲线为准。
+## Fichiers gardés
 
-## 保留的文件
+| Fichier | Contenu | Score public |
+|---|---|---:|
+| **`20261016_FINAL_full_Bseeds.csv`** | **soumission finale** : trois modèles × trois graines, réentraînés sur les 105 000 lignes | **0.92301** |
+| `20261016_hybrid_50_50.csv` | moitié réentraînement complet, moitié modèles de plis | 0.92259 |
+| `20261015_B_seeds_3_3_3_foldavg.csv` | trois modèles × trois graines, moyenne des modèles de plis (AUC sur cinq plis : 0.92073) | 0.92197 |
 
-|文件|模型|依据|公开榜|
-|---|---|---|---:|
-|**`20261016_FINAL_full_Bseeds.csv`**|**最终主选**。实验 17（04）：M1/M2/M3 × 3 种子，全部 105,000 行重训|学习曲线：训练数据 ×1.25 → +0.0012（5/5 折）|**0.92301**|
-|`20261016_hybrid_50_50.csv`|备选。实验 17（04）：全量模型与折平均模型各半|同上，兼顾折模型的多样性|0.92259|
-|`20261015_B_seeds_3_3_3_foldavg.csv`|实验 15（04）：M1/M2/M3 × 3 种子，五折折模型的测试预测平均|五折 AUC 0.92073（可直接验证的最好成绩）|0.92197|
+## Historique
 
-**平台上勾选（Select）：`20261016_FINAL_full_Bseeds.csv` + `20261016_hybrid_50_50.csv`。**
-
-## 全部提交历史（其余文件已删除，分数保留在此）
-
-|日期|提交|来源（原实验编号）|五折 AUC|公开榜|
-|---|---|---|---:|---:|
-|2026-09-20|CPU CatBoost R2，56 列，全量|旧 18（已删除）|0.91604|0.91857|
-|2026-09-30|GPU CatBoost R2，全量|03（已删除）|0.91498|0.91764|
-|2026-10-14|CPU R1/R2 多种子全量融合（4 个版本）|08（已删除）|0.91608|0.91846–0.91863|
-|2026-10-15|K0–K3：参数 × 第一轮特征，折平均|11（已删除）|0.91816–0.91926|0.92067–0.92082|
-|2026-10-15|M1+M2+M3（seed 42）融合，折平均|13|0.92051|0.92190|
-|2026-10-15|多种子 + 10% LightGBM|15|0.92073|0.92178|
-|2026-10-15|多种子 B_seeds，折平均|15|0.92073|0.92197|
-|2026-10-16|全量与折平均各半（hybrid）|17|—|0.92259|
-|2026-10-16|**全量重训 full_Bseeds**|**17**|学习曲线 +0.0012|**0.92301**|
-
-另有一次误传的 `C7_d8_lr03_l2_10_sub80__fold1.csv`（实验 09 的第 1 折验证预测，不是提交文件），平台报错，无分数。
+| Date | Soumission | AUC, cinq plis | Score public |
+|---|---|---:|---:|
+| 2026-09-20 | CatBoost CPU profondeur 8, 56 colonnes | 0.91604 | 0.91857 |
+| 2026-09-30 | le même sur GPU | 0.91498 | 0.91764 |
+| 2026-10-14 | mélanges de CatBoost CPU, plusieurs graines (4 versions) | 0.91608 | 0.91846 à 0.91863 |
+| 2026-10-15 | réglages × variables de la série 1 (4 versions) | 0.91816 à 0.91926 | 0.92067 à 0.92082 |
+| 2026-10-15 | trois modèles, graine 42 | 0.92051 | 0.92190 |
+| 2026-10-15 | trois graines + 10 % de LightGBM | 0.92073 | 0.92178 |
+| 2026-10-15 | trois graines, moyenne des modèles de plis | 0.92073 | 0.92197 |
+| 2026-10-16 | moitié réentraînement, moitié modèles de plis | — | 0.92259 |
+| 2026-10-16 | **réentraînement sur les 105 000 lignes** | — | **0.92301** |

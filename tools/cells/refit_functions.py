@@ -1,8 +1,8 @@
 fixed_config(OUTPUT_DIR, {
-    'purpose': 'learning curve (80% vs 100% of outer-train) + full-data refit of M1-M3 x 3 seeds',
+    'purpose': PURPOSE_FULL_REFIT,
     'seed': SEED, 'inner_stop_fraction': INNER_STOP_FRACTION,
     'max_iterations': MAX_ITERATIONS, 'od_wait': OD_WAIT,
-    'lc_group': LC_GROUP, 'lc_fraction': LC_FRACTION, 'full_rounds_scale': FULL_ROUNDS_SCALE,
+    'lc_group': LEARNING_CURVE_MODEL, 'lc_fraction': LEARNING_CURVE_FRACTION, 'full_rounds_scale': FULL_ROUNDS_SCALE,
     'gpu_base': {k: v for k, v in GPU_BASE.items() if k != 'thread_count'},
     'data_hashes': DATA_HASHES,
 })
@@ -14,7 +14,7 @@ def model_params(spec, iterations, seed):
 
 
 def early_stop_refit(spec, train, cats, idx, seed):
-    """与五折模型（04）完全相同的协议：idx 内留 15% 早停 → 在整个 idx 上按 b/0.85 轮重训。"""
+    """Protocole identique à 04 : réserver 15 % de idx pour l’arrêt anticipé, puis réentraîner sur tout idx pendant b/0.85 itérations."""
     inner_fit, inner_stop = train_test_split(idx, test_size=INNER_STOP_FRACTION,
                                              random_state=SEED, stratify=y.iloc[idx])
     probe = catboost.CatBoostClassifier(**model_params(spec, MAX_ITERATIONS, seed),
@@ -28,5 +28,5 @@ def early_stop_refit(spec, train, cats, idx, seed):
     gc.collect()
     model = catboost.CatBoostClassifier(**model_params(spec, rounds, seed), use_best_model=False)
     model.fit(train.iloc[idx], y.iloc[idx], cat_features=cats)
-    require(int(model.tree_count_) == rounds, '重训轮数不符')
+    require(int(model.tree_count_) == rounds, 'Nombre d’itérations de réentraînement incorrect')
     return model, best, rounds

@@ -1,10 +1,10 @@
-nn_train, nn_test, nn_cats = variant_frames(G7)
+nn_train, nn_test, nn_cats = variant_frames(ENRICHED_FEATURE_BLOCKS)
 nn_nums = [c for c in nn_train.columns if c not in nn_cats]
-print(f'特征：{nn_train.shape[1]} 列 = {len(nn_nums)} 数值 + {len(nn_cats)} 类别')
+print(f'Variables : {nn_train.shape[1]} colonnes = {len(nn_nums)} numériques + {len(nn_cats)} catégorielles')
 
 
 class FoldPreprocessor:
-    """只在外层训练部分上拟合：分位数正态化、分段线性编码 (PLE)、缺失标记、类别词表。"""
+    """Ajustement sur le train externe uniquement : normalisation quantile gaussienne, PLE, indicateurs de valeurs manquantes et vocabulaire catégoriel."""
 
     def __init__(self, bins, rare_min_count):
         self.bins = bins
@@ -14,7 +14,7 @@ class FoldPreprocessor:
         num = frame[nn_nums].to_numpy(dtype='float64')
         self.quantile = QuantileTransformer(n_quantiles=1000, output_distribution='normal',
                                             subsample=10**9, random_state=SEED)
-        self.quantile.fit(num)                      # sklearn 会忽略 NaN
+        self.quantile.fit(num)                      # sklearn ignore les NaN
         self.edges = []
         for j in range(num.shape[1]):
             values = num[:, j][~np.isnan(num[:, j])]
@@ -25,7 +25,7 @@ class FoldPreprocessor:
         for column in nn_cats:
             counts = frame[column].value_counts()
             kept = counts.index[counts >= self.rare_min_count]
-            self.vocab.append({value: i + 1 for i, value in enumerate(kept)})   # 0 = 未知/稀有
+            self.vocab.append({value: i + 1 for i, value in enumerate(kept)})   # 0 = inconnu / rare
         self.cardinalities = [len(v) + 1 for v in self.vocab]
         return self
 
@@ -47,7 +47,7 @@ class FoldPreprocessor:
 
 
 class TabMMini(nn.Module):
-    """TabM-mini：k 个成员共享同一个 MLP，只在输入端各有一个随机 ±1 的缩放向量；预测取 k 个成员概率的平均。"""
+    """TabM-mini : k membres partagent un MLP, avec chacun un vecteur de facteurs ±1 en entrée. La prédiction moyenne leurs probabilités."""
 
     def __init__(self, d_dense, cardinalities, k, width, depth, dropout, cat_dim):
         super().__init__()
@@ -118,14 +118,14 @@ def train_fold(fold):
             best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
         else:
             waited += 1
-        print(f'  fold {fold} epoch {epoch:2d}: 内层早停集 AUC={stop_auc:.5f}'
+        print(f'  fold {fold} epoch {epoch:2d}: AUC du jeu interne d’arrêt anticipé={stop_auc:.5f}'
               f'{"  *" if waited == 0 else ""}', flush=True)
         if waited >= cfg['patience']:
             break
     model.load_state_dict(best_state)
     valid_prob = predict(model, *data['valid'])
     test_prob = predict(model, *data['test'])
-    require(np.isfinite(valid_prob).all() and np.isfinite(test_prob).all(), '神经网络预测含非有限值')
+    require(np.isfinite(valid_prob).all() and np.isfinite(test_prob).all(), 'Les prédictions du réseau contiennent des valeurs non finies')
     actual = y.iloc[valid_idx]
     stem = OUTPUT_DIR / f'TabMMini__fold{fold}'
     pd.DataFrame({'id': train_ids.iloc[valid_idx].to_numpy(), 'accepted': actual.to_numpy(),
@@ -133,7 +133,7 @@ def train_fold(fold):
     pd.DataFrame({'id': test_ids.to_numpy(), 'accepted': test_prob}).to_csv(
         f'{stem}__test.csv', index=False, float_format='%.12f')
     result = {
-        'group': 'TabMMini', 'fold': fold, 'config': cfg, 'blocks': G7,
+        'group': 'TabMMini', 'fold': fold, 'config': cfg, 'blocks': ENRICHED_FEATURE_BLOCKS,
         'dense_dim': int(data['fit'][0].shape[1]), 'categorical_columns': len(nn_cats),
         'best_epoch': best_epoch, 'inner_stop_auc': best_auc,
         'valid_auc': roc_auc_score(actual, valid_prob),

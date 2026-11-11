@@ -11,19 +11,19 @@ DTI_BOUNDS = {
 
 def add_dti_bounds(frame):
     unknown = set(frame['debt_to_income_ratio'].unique()) - set(DTI_BOUNDS)
-    require(not unknown, f'DTI 出现未知类别：{sorted(map(str, unknown))}')
+    require(not unknown, f'Catégories DTI inconnues : {sorted(map(str, unknown))}')
     result = frame.copy()
     pairs = frame['debt_to_income_ratio'].map(DTI_BOUNDS)
     result['dti_lower'] = pairs.map(lambda pair: pair[0]).astype('float64')
     result['dti_upper'] = pairs.map(lambda pair: pair[1]).astype('float64')
     require(result.columns.tolist() == FEATURE_COLUMNS + ['dti_lower', 'dti_upper'],
-            'DTI 特征列或顺序错误')
+            'Colonnes DTI ou ordre incorrects')
     require(result['debt_to_income_ratio'].equals(frame['debt_to_income_ratio']),
-            '原始 DTI 类别被修改')
+            'Les catégories DTI initiales ont été modifiées')
     return result
 
 
 X_dti = add_dti_bounds(X_base)
 X_test_dti = add_dti_bounds(X_test_base)
-print(f'候选特征：原始 56 列 + 2 列 DTI 上下界 = {X_dti.shape[1]} 列。')
-display(X_dti[['debt_to_income_ratio', 'dti_lower', 'dti_upper']].head())
+print(f'Variables candidates : 56 colonnes initiales + 2 bornes DTI = {X_dti.shape[1]} colonnes.')
+display_named(X_dti[['debt_to_income_ratio', 'dti_lower', 'dti_upper']].head())

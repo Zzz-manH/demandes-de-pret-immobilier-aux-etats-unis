@@ -15,47 +15,47 @@ manifest_path = PREPARED_DIR / 'manifest.json'
 schema_path = PREPARED_DIR / 'schema.json'
 if not manifest_path.is_file() or not schema_path.is_file():
     raise FileNotFoundError(
-        f'缺少 {manifest_path} 或 {schema_path}；请先运行 01_data_exploration.ipynb'
+        f'Fichier manquant : {manifest_path} ou {schema_path} ; exécuter d’abord 01_data_exploration.ipynb'
     )
 manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
 schema = json.loads(schema_path.read_text(encoding='utf-8'))
-require(manifest['schema_version'] == schema['schema_version'] == '1.0', '数据契约版本不匹配')
-require(manifest['seed'] == SEED and manifest['n_splits'] == 5, '五折配置不匹配')
+require(manifest['schema_version'] == schema['schema_version'] == '1.0', 'Version du contrat de données incompatible')
+require(manifest['seed'] == SEED and manifest['n_splits'] == 5, 'Configuration des cinq folds incompatible')
 require(set(manifest['source_files']) == {'train.csv', 'test.csv', 'sample_submission.csv'},
-        '原始文件清单不完整')
+        'Liste des fichiers source incomplète')
 expected_prepared = {
     'train_features.csv', 'test_features.csv', 'train_labels.csv',
     'test_ids.csv', 'folds.csv', 'audit.csv', 'schema.json',
 }
-require(set(manifest['output_files']) == expected_prepared, '准备文件清单不完整')
+require(set(manifest['output_files']) == expected_prepared, 'Liste des fichiers préparés incomplète')
 for name, info in manifest['source_files'].items():
     path = DATA_DIR / name
-    require(path.is_file(), f'缺少原始数据：{path}')
-    require(sha256_file(path) == info['sha256'], f'原始文件已变化：{name}；请先重跑 01')
+    require(path.is_file(), f'Données source manquantes : {path}')
+    require(sha256_file(path) == info['sha256'], f'Fichier source modifié : {name} ; réexécuter 01')
 for name, info in manifest['output_files'].items():
     path = PREPARED_DIR / name
-    require(path.is_file(), f'缺少准备文件：{path}')
-    require(sha256_file(path) == info['sha256'], f'准备文件哈希不匹配：{name}；请先重跑 01')
+    require(path.is_file(), f'Fichier préparé manquant : {path}')
+    require(sha256_file(path) == info['sha256'], f'Empreinte du fichier préparé différente : {name} ; réexécuter 01')
 
 FEATURE_COLUMNS = schema['feature_columns']
 NUMERIC_COLUMNS = schema['numeric_columns']
 CATEGORICAL_COLUMNS = schema['categorical_columns']
 require(len(FEATURE_COLUMNS) == 56 and len(NUMERIC_COLUMNS) == 13
-        and len(CATEGORICAL_COLUMNS) == 43, '预期为 56 列：13 数值、43 类别')
+        and len(CATEGORICAL_COLUMNS) == 43, '56 colonnes attendues : 13 numériques, 43 catégorielles')
 require(set(FEATURE_COLUMNS) == set(NUMERIC_COLUMNS + CATEGORICAL_COLUMNS),
-        '数值/类别列分组不完整')
-require(not {'id', 'accepted'} & set(FEATURE_COLUMNS), 'ID 或标签不能作为特征')
+        'Répartition numérique/catégorielle incomplète')
+require(not {'id', 'accepted'} & set(FEATURE_COLUMNS), 'Les ID et la cible ne peuvent pas servir de variables')
 
 
 def read_features(path):
     frame = pd.read_csv(path, dtype=str, keep_default_na=False)
-    require(frame.columns.tolist() == FEATURE_COLUMNS, f'特征列或顺序不匹配：{path.name}')
+    require(frame.columns.tolist() == FEATURE_COLUMNS, f'Variables ou ordre des colonnes incompatibles : {path.name}')
     for column in NUMERIC_COLUMNS:
         frame[column] = pd.to_numeric(
             frame[column].replace('', np.nan), errors='raise',
         ).astype('float64')
-    require(not np.isinf(frame[NUMERIC_COLUMNS].to_numpy()).any(), '数值列含无穷大')
-    require(not frame[CATEGORICAL_COLUMNS].eq('').any().any(), '类别列含空字符串')
+    require(not np.isinf(frame[NUMERIC_COLUMNS].to_numpy()).any(), 'Valeurs infinies dans les colonnes numériques')
+    require(not frame[CATEGORICAL_COLUMNS].eq('').any().any(), 'Chaînes vides dans les colonnes catégorielles')
     return frame
 
 
@@ -66,22 +66,22 @@ test_id_frame = pd.read_csv(PREPARED_DIR / 'test_ids.csv', dtype=str, keep_defau
 fold_frame = pd.read_csv(PREPARED_DIR / 'folds.csv', dtype=str, keep_default_na=False)
 sample_submission = pd.read_csv(DATA_DIR / 'sample_submission.csv', dtype=str, keep_default_na=False)
 
-require(labels.columns.tolist() == ['id', 'accepted'], '训练标签列不匹配')
-require(test_id_frame.columns.tolist() == ['id'], '测试 ID 列不匹配')
-require(fold_frame.columns.tolist() == ['id', 'fold'], '折号文件列不匹配')
-require(sample_submission.columns.tolist() == ['id', 'accepted'], '提交模板列不匹配')
-require(len(X_base) == len(labels) == len(fold_frame) == 105000, '训练行数不匹配')
+require(labels.columns.tolist() == ['id', 'accepted'], 'Colonnes des cibles train incompatibles')
+require(test_id_frame.columns.tolist() == ['id'], 'Colonnes des ID test incompatibles')
+require(fold_frame.columns.tolist() == ['id', 'fold'], 'Colonnes du fichier de folds incompatibles')
+require(sample_submission.columns.tolist() == ['id', 'accepted'], 'Colonnes du modèle de soumission incompatibles')
+require(len(X_base) == len(labels) == len(fold_frame) == 105000, 'Nombre de lignes train incorrect')
 require(len(X_test_base) == len(test_id_frame) == len(sample_submission) == 45000,
-        '测试行数不匹配')
+        'Nombre de lignes test incorrect')
 
 train_ids = labels['id']
 test_ids = test_id_frame['id']
-require(train_ids.is_unique and test_ids.is_unique, 'ID 重复')
-require(train_ids.ne('').all() and test_ids.ne('').all(), 'ID 为空')
-require(train_ids.equals(fold_frame['id']), '折号 ID 与训练行错位')
-require(test_ids.equals(sample_submission['id']), '测试 ID 与提交模板顺序不符')
-require(set(train_ids).isdisjoint(test_ids), '训练与测试 ID 重叠')
-require(set(labels['accepted']) == {'0', '1'}, 'accepted 需同时包含 0 和 1')
+require(train_ids.is_unique and test_ids.is_unique, 'ID en double')
+require(train_ids.ne('').all() and test_ids.ne('').all(), 'ID vide')
+require(train_ids.equals(fold_frame['id']), 'ID des folds désalignés avec le train')
+require(test_ids.equals(sample_submission['id']), 'Ordre des ID test différent du modèle de soumission')
+require(set(train_ids).isdisjoint(test_ids), 'ID communs au train et au test')
+require(set(labels['accepted']) == {'0', '1'}, 'accepted doit contenir les deux valeurs 0 et 1')
 raw_train_identity = pd.read_csv(
     DATA_DIR / 'train.csv', usecols=['id', 'accepted'],
     dtype=str, keep_default_na=False,
@@ -91,21 +91,21 @@ raw_test_identity = pd.read_csv(
 )
 require(train_ids.equals(raw_train_identity['id'])
         and labels['accepted'].equals(raw_train_identity['accepted']),
-        '准备标签与原始 train.csv 的 ID/标签不一致')
+        'ID ou cibles préparés différents du train.csv initial')
 require(test_ids.equals(raw_test_identity['id']),
-        '准备测试 ID 与原始 test.csv 不一致')
+        'ID test préparés différents du test.csv initial')
 y = labels['accepted'].astype('int8')
-require(set(fold_frame['fold']) == {'1', '2', '3', '4', '5'}, '折号应为 1..5')
+require(set(fold_frame['fold']) == {'1', '2', '3', '4', '5'}, 'Les folds doivent être numérotés de 1 à 5')
 fold_assignment = fold_frame['fold'].astype('int8').to_numpy()
 
 expected_folds = np.zeros(len(X_base), dtype=np.int8)
 splitter = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
 for fold, (_, valid_index) in enumerate(splitter.split(X_base, y), start=1):
     expected_folds[valid_index] = fold
-require(np.array_equal(fold_assignment, expected_folds), '折号并非固定 seed=42 五折')
+require(np.array_equal(fold_assignment, expected_folds), 'Les folds ne correspondent pas au découpage fixe avec seed=42')
 DATA_HASHES = {
     'manifest.json': sha256_file(manifest_path),
     **{name: info['sha256'] for name, info in manifest['output_files'].items()},
 }
-print(f'数据核对通过：训练 {len(X_base):,}，测试 {len(X_test_base):,}，56 个原始特征。')
-display(pd.crosstab(fold_assignment, y, rownames=['fold'], colnames=['accepted']))
+print(f'Données vérifiées : train {len(X_base):,}, test {len(X_test_base):,}, 56 variables initiales.')
+display_named(pd.crosstab(fold_assignment, y, rownames=['fold'], colnames=['accepted']))

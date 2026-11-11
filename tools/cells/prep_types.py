@@ -6,7 +6,7 @@ numeric_columns = [
     "tract_median_age_of_housing_units",
 ]
 categorical_columns = [c for c in feature_columns if c not in numeric_columns]
-assert len(feature_columns) == 56, "输入 schema 变化；先审核新增/删除字段"
+assert len(feature_columns) == 56, "Schéma d’entrée modifié ; vérifier les champs ajoutés ou supprimés"
 assert len(numeric_columns) == 13 and len(categorical_columns) == 43
 assert set(numeric_columns).issubset(feature_columns)
 assert set(numeric_columns).isdisjoint(categorical_columns)

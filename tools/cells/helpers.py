@@ -1,10 +1,10 @@
 def checked_probabilities(model, features):
-    require(list(model.classes_) == [0, 1], '类别顺序不是 [0, 1]')
+    require(list(model.classes_) == [0, 1], 'Ordre des classes différent de [0, 1]')
     probability = np.asarray(model.predict_proba(features)[:, 1], dtype=float)
     require(probability.ndim == 1 and len(probability) == len(features)
             and np.isfinite(probability).all()
             and ((probability >= 0) & (probability <= 1)).all(),
-            '预测概率无效')
+            'Probabilités prédites invalides')
     return probability
 
 
@@ -15,12 +15,12 @@ def write_json(path, payload):
 
 
 def fixed_config(output_dir, config):
-    """首次运行写入配置；之后配置必须完全相同，避免把不同实验的结果混在一个目录。"""
+    """Écrire la configuration au premier passage, puis exiger son identité pour ne pas mélanger les expériences."""
     output_dir.mkdir(parents=True, exist_ok=True)
     path = output_dir / 'config.json'
     if path.is_file():
         saved = json.loads(path.read_text(encoding='utf-8'))
         require(saved == config,
-                f'{output_dir.name} 已有不同配置的结果；改动配置时请改 EXPERIMENT_ID')
+                f'{output_dir.name} contient des résultats avec une autre configuration ; changer EXPERIMENT_ID')
     else:
         write_json(path, config)

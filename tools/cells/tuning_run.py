@@ -33,7 +33,7 @@ def run_one(name, spec, fold):
         best_iteration = int(probe.get_best_iteration()) + 1
         early_stopped = int(probe.tree_count_) < MAX_ITERATIONS
         if not early_stopped:
-            print(f'  注意：{name} 到 {MAX_ITERATIONS} 轮仍未早停，结果可能偏保守')
+            print(f'  Attention : {name} atteint {MAX_ITERATIONS} itérations sans arrêt anticipé ; résultat potentiellement sous-estimé')
         rounds = int(round(best_iteration / (1 - INNER_STOP_FRACTION)))
         del probe
         gc.collect()
@@ -41,7 +41,7 @@ def run_one(name, spec, fold):
         rounds = int(spec['iterations'])
     model = catboost.CatBoostClassifier(**candidate_params(spec, rounds), use_best_model=False)
     model.fit(features.iloc[fit_idx], y.iloc[fit_idx], cat_features=CATEGORICAL_COLUMNS)
-    require(int(model.tree_count_) == rounds, '外层重训轮数不符')
+    require(int(model.tree_count_) == rounds, 'Nombre d’itérations incorrect pour le réentraînement externe')
     probability = checked_probabilities(model, features.iloc[valid_idx])
     actual = y.iloc[valid_idx]
     pd.DataFrame({'id': train_ids.iloc[valid_idx].to_numpy(), 'accepted': actual.to_numpy(),
@@ -76,9 +76,9 @@ for fold in FOLDS:
         result_path = OUTPUT_DIR / f'{name}__fold{fold}.json'
         if result_path.is_file():
             saved = json.loads(result_path.read_text(encoding='utf-8'))
-            require(saved['spec'] == spec, f'{name} 的定义已改变；请改候选名')
-            print(f'{name} fold {fold}: 已完成 AUC={saved["valid_auc"]:.6f}，跳过')
+            require(saved['spec'] == spec, f'{name} : définition modifiée ; renommer le candidat')
+            print(f'{name} fold {fold}: terminé, AUC={saved["valid_auc"]:.6f}, ignoré')
             continue
         result = run_one(name, spec, fold)
         print(f'{name} fold {fold}: AUC={result["valid_auc"]:.6f}  '
-              f'轮数={result["refit_rounds"]}  {result["seconds"]/60:.1f} 分钟', flush=True)
+              f'itérations={result["refit_rounds"]}  {result["seconds"]/60:.1f} min', flush=True)

@@ -14,7 +14,7 @@ def build_blocks(train, test):
         'ltv_gap': both['loan_to_value_ratio'] - ltv_calc,
     })
 
-    income_dollars = both['income'] * 1000      # HMDA 收入单位为千美元
+    income_dollars = both['income'] * 1000      # Les revenus HMDA sont exprimés en milliers de dollars
     blocks['income'] = pd.DataFrame({
         'income_to_area': safe_ratio(income_dollars, both['ffiec_msa_md_median_family_income']),
         'loan_to_income': safe_ratio(both['loan_amount'], income_dollars),
@@ -43,7 +43,7 @@ def build_blocks(train, test):
     n_train = len(train)
     out = {}
     for name, frame in blocks.items():
-        require(len(frame) == len(both), f'{name} 行数不符')
+        require(len(frame) == len(both), f'{name} : nombre de lignes incorrect')
         out[name] = (frame.iloc[:n_train].reset_index(drop=True),
                      frame.iloc[n_train:].reset_index(drop=True))
     return out
@@ -58,13 +58,13 @@ def variant_frames(blocks):
     test_parts = [X_test_base] + [BLOCKS[b][1] for b in blocks]
     train = pd.concat(train_parts, axis=1)
     test = pd.concat(test_parts, axis=1)
-    require(train.columns.is_unique and train.columns.equals(test.columns), '变体列不一致')
-    require(train.iloc[:, :len(FEATURE_COLUMNS)].equals(X_base), '原始 56 列被修改')
+    require(train.columns.is_unique and train.columns.equals(test.columns), 'Colonnes incohérentes entre variantes')
+    require(train.iloc[:, :len(FEATURE_COLUMNS)].equals(X_base), 'Les 56 colonnes initiales ont été modifiées')
     cats = CATEGORICAL_COLUMNS + [c for c in train.columns if c in NEW_CATEGORICAL]
     return train, test, cats
 
 
 for name, (train_block, _) in BLOCKS.items():
     described = train_block.describe(include='all').T
-    print(f'\n[{name}] 缺失率：', train_block.isna().mean().round(3).to_dict())
-    display(described.iloc[:, :6])
+    print(f'\n[{name}] Taux de valeurs manquantes : ', train_block.isna().mean().round(3).to_dict())
+    display_named(described.iloc[:, :6])

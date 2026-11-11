@@ -1,4 +1,4 @@
-# 本次验证环境：Python 3.11.15，已有本地安装；没有自动安装这些包。
+# Versions utilisées pour les expériences (Python 3.11).
 numpy==1.26.4
 pandas==3.0.1
 scikit-learn==1.8.0
@@ -9,3 +9,6 @@ xgboost==3.2.0
 nbformat==5.10.4
 nbclient==0.10.4
 ipykernel>=6
+
+# Lecture et écriture des variables au format Parquet
+pyarrow

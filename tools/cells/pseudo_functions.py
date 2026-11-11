@@ -2,7 +2,7 @@ fixed_config(OUTPUT_DIR, {
     'purpose': 'soft pseudo-labelling of test rows (CrossEntropy), fold-honest validation + full-data students',
     'seed': SEED, 'inner_stop_fraction': INNER_STOP_FRACTION,
     'max_iterations': MAX_ITERATIONS, 'od_wait': OD_WAIT,
-    'pl_group': PL_GROUP, 'pl_weight': PL_WEIGHT,
+    'pl_group': PSEUDO_LABEL_MODEL, 'pl_weight': PL_WEIGHT,
     'gpu_base': {k: v for k, v in GPU_BASE.items() if k != 'thread_count'},
     'data_hashes': DATA_HASHES,
 })
@@ -14,7 +14,7 @@ def model_params(spec, iterations, seed, loss='Logloss'):
 
 
 def early_stop_refit(spec, train, cats, idx, seed):
-    """与五折模型（04）完全相同的协议：idx 内留 15% 早停 → 在整个 idx 上按 b/0.85 轮重训。"""
+    """Protocole identique à 04 : réserver 15 % de idx pour l’arrêt anticipé, puis réentraîner sur tout idx pendant b/0.85 itérations."""
     inner_fit, inner_stop = train_test_split(idx, test_size=INNER_STOP_FRACTION,
                                              random_state=SEED, stratify=y.iloc[idx])
     probe = catboost.CatBoostClassifier(**model_params(spec, MAX_ITERATIONS, seed),
@@ -28,13 +28,12 @@ def early_stop_refit(spec, train, cats, idx, seed):
     gc.collect()
     model = catboost.CatBoostClassifier(**model_params(spec, rounds, seed), use_best_model=False)
     model.fit(train.iloc[idx], y.iloc[idx], cat_features=cats)
-    require(int(model.tree_count_) == rounds, '重训轮数不符')
+    require(int(model.tree_count_) == rounds, 'Nombre d’itérations de réentraînement incorrect')
     return model, best, rounds
 
 
 def pseudo_label_refit(spec, train, test, cats, idx, pseudo, seed):
-    """真实行（idx）+ 全部测试行（软标签 pseudo）一起训练。早停集只取真实行的 15%，
-    重训轮数按有效样本量（真实行 + 权重 × 伪标签行）等比放大。"""
+    """Entraîner sur les lignes réelles (idx) et tout le test (pseudo-labels souples). Réserver 15 % des lignes réelles à l’arrêt anticipé, puis adapter les itérations au volume effectif : lignes réelles + poids × lignes pseudo-étiquetées."""
     inner_fit, inner_stop = train_test_split(idx, test_size=INNER_STOP_FRACTION,
                                              random_state=SEED, stratify=y.iloc[idx])
 
@@ -60,26 +59,26 @@ def pseudo_label_refit(spec, train, test, cats, idx, pseudo, seed):
     model = catboost.CatBoostClassifier(**model_params(spec, rounds, seed, loss='CrossEntropy'),
                                         use_best_model=False)
     model.fit(X_all, y_all, sample_weight=w_all, cat_features=cats)
-    require(int(model.tree_count_) == rounds, '伪标签模型轮数不符')
+    require(int(model.tree_count_) == rounds, 'Nombre d’itérations incorrect pour le modèle à pseudo-labels')
     return model, best, rounds
 
 
 def mean_test(paths):
     frames = [pd.read_csv(p, dtype={'id': str}) for p in paths]
     for f in frames:
-        require(f['id'].equals(sample_submission['id']), f'测试 ID 顺序不一致：{paths[0]}')
+        require(f['id'].equals(sample_submission['id']), f'Ordre des ID test incohérent : {paths[0]}')
     return np.mean([f['accepted'].to_numpy() for f in frames], axis=0)
 
 
 def teacher_for_fold(fold):
-    """第 k 折的老师 = 04 中只在第 k 折外层训练部分上训练的 9 个模型对测试集的平均预测。"""
+    """Enseignant du fold k : moyenne test des 9 modèles de 04 entraînés uniquement sur le train externe du fold k."""
     return mean_test([CATBOOST_DIR / f'{b}{s}__fold{fold}__test.csv'
-                      for b in CAT_BASES for s in SEED_SUFFIXES.values()])
+                      for b in FINAL_MODEL_NAMES for s in SEED_SUFFIXES.values()])
 
 
 def teacher_valid(fold):
     frames = [pd.read_csv(CATBOOST_DIR / f'{b}{s}__fold{fold}__valid.csv')
-              for b in CAT_BASES for s in SEED_SUFFIXES.values()]
+              for b in FINAL_MODEL_NAMES for s in SEED_SUFFIXES.values()]
     for f in frames[1:]:
-        require(f['id'].equals(frames[0]['id']), '老师 OOF 行顺序不一致')
+        require(f['id'].equals(frames[0]['id']), 'Ordre des lignes OOF de l’enseignant incohérent')
     return frames[0][['id']].assign(teacher=np.mean([f['prob'].to_numpy() for f in frames], axis=0))

@@ -32,11 +32,11 @@ if REBUILD_PREPARED or not (PREPARED_DIR / "manifest.json").is_file():
         "versions": {"python": platform.python_version(), "numpy": np.__version__, "pandas": pd.__version__, "sklearn": sklearn.__version__},
         "preprocessing": "deterministic text/type normalization only; no fitted estimator or population-derived threshold",
     }
-    # manifest 最后写入；若中途失败，旧 manifest 与文件哈希不匹配，模型入口会停止。
+    # Écrire le manifeste en dernier ; en cas d’échec, les empreintes incompatibles bloquent les modèles
     manifest_temp = PREPARED_DIR / "manifest.json.tmp"
     manifest_temp.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     manifest_temp.replace(PREPARED_DIR / "manifest.json")
-    print(f"已保存 {len(output_frames) + 2} 个准备文件。")
+    print(f"Enregistrés : {len(output_frames) + 2} fichiers préparés.")
 else:
     manifest = json.loads((PREPARED_DIR / "manifest.json").read_text(encoding="utf-8"))
-    print("artifacts/01_data_exploration 已存在，未重写；下一格用本次重新整理的结果逐项核对已保存的文件。")
+    print("artifacts/01_data_exploration existe déjà ; la cellule suivante compare les fichiers conservés aux données préparées en mémoire.")
