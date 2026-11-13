@@ -1,4 +1,4 @@
-"""Génère les cinq notebooks du projet.
+"""Génère les six notebooks du projet.
 
     python tools/build_notebooks.py <dossier_sortie>
 

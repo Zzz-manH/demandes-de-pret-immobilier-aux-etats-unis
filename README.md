@@ -6,7 +6,7 @@ Projet du Data Challenge d'apprentissage supervisé. Il s'agit d'estimer la prob
 
 Le détail des expériences est dans [RESULTS.md](RESULTS.md) et l'historique des soumissions dans [submissions/README.md](submissions/README.md).
 
-## Les cinq notebooks
+## Les six notebooks
 
 | Notebook | Contenu |
 |---|---|
@@ -15,6 +15,7 @@ Le détail des expériences est dans [RESULTS.md](RESULTS.md) et l'historique de
 | [03_model_selection](03_model_selection.ipynb) | modèles de départ, transformations numériques, réglage de CatBoost |
 | [04_final_model](04_final_model.ipynb) | modèles sur cinq plis, graines, courbe d'apprentissage, réentraînement complet, soumissions |
 | [05_error_analysis](05_error_analysis.ipynb) | résidus, LightGBM, réseau de neurones, mélanges, pseudo-étiquettes, variabilité des scores |
+| [06_interpretation](06_interpretation.ipynb) | valeurs de Shapley, calibration, résultats par groupe, modèle sans variables protégées |
 
 Les notebooks sont enregistrés avec leurs sorties : on peut lire les tableaux et les figures sans rien exécuter.
 
@@ -39,8 +40,8 @@ Nous n'utilisons pas les données HMDA publiques : le test en vient.
 ## Exécution
 
 - **Lire seulement** : ouvrir les notebooks, les sorties sont déjà là.
-- **Réexécuter sans entraîner** : par défaut tous les boutons `TRAIN` sont à `False` et les notebooks relisent les résultats sauvegardés dans `artifacts/` (environ 290 Mo, hors dépôt). Le notebook 01 entraîne quand même un petit modèle de contrôle sur CPU et le notebook 02 réécrit les variables. Sans `artifacts/`, le notebook 01 se réexécute entièrement à partir des CSV et recrée les données préparées, et le notebook 02 reconstruit les variables (sections 1 à 5) ; ses tableaux d'ablation et les notebooks 03 à 05 s'arrêtent ensuite faute de résultats.
-- **Tout refaire depuis les CSV** : exécuter 01, puis les sections 1 à 5 de 02 ; dans 04, activer `cv_models`, `learning_curve` et `full_refit` (GPU T4). Les notebooks 03 et 05 ne sont pas nécessaires pour la soumission finale.
+- **Réexécuter sans entraîner** : par défaut tous les boutons `TRAIN` sont à `False` et les notebooks relisent les résultats sauvegardés dans `artifacts/` (environ 290 Mo, hors dépôt). Le notebook 01 entraîne quand même un petit modèle de contrôle sur CPU et le notebook 02 réécrit les variables. Sans `artifacts/`, le notebook 01 se réexécute entièrement à partir des CSV et recrée les données préparées, et le notebook 02 reconstruit les variables (sections 1 à 5) ; ses tableaux d'ablation et les notebooks 03 à 06 s'arrêtent ensuite faute de résultats.
+- **Tout refaire depuis les CSV** : exécuter 01, puis les sections 1 à 5 de 02 ; dans 04, activer `cv_models`, `learning_curve` et `full_refit` (GPU T4). Les notebooks 03, 05 et 06 ne sont pas nécessaires pour la soumission finale.
 - **Sur Colab** : placer le dossier du projet dans `MyDrive/Colab Notebooks/`, ou définir `HMDA_PROJECT_DIR`.
 
 Dépendances : [requirements.txt](requirements.txt). CatBoost est fixé à la version 1.2.10.
@@ -48,7 +49,7 @@ Dépendances : [requirements.txt](requirements.txt). CatBoost est fixé à la ve
 ## Organisation
 
 ```text
-01–05 *.ipynb      les cinq notebooks
+01–06 *.ipynb      les six notebooks
 data/              CSV de la compétition (à télécharger)
 artifacts/         données préparées, variables, prédictions et résultats (hors dépôt)
 submissions/       fichiers soumis et historique des scores
