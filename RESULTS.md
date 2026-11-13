@@ -128,6 +128,20 @@ Avec trois graines par modèle : **0.92073** (score public 0.92197).
 | Mélange entre toutes les expériences, choisi par validation imbriquée | garde l'ensemble final seul dans 4 plis sur 5 |
 | Résidus par groupe (rapport proche de 1 = rien à gagner ; groupes aléatoires : 1.02) | secteur 0.96, comté 0.97, aire urbaine 0.90, État 1.09 ; indicateurs de produit 1.77 sur 17 groupes seulement |
 
+## Interprétation (notebook 06)
+
+Modèle « profondeur 6, jeu réduit », prédictions hors pli. Référence et modèle sans variables protégées entraînés dans la même session.
+
+| Question | Résultat |
+|---|---|
+| Familles de variables (part des valeurs de Shapley, pli 1) | instruction du dossier 24 %, endettement et revenu 17 %, produit 16 %, LTV et valeur du bien 14 %, géographie 13 %, variables protégées 12 %, valeurs manquantes 4 % |
+| Calibration | erreur de calibration 0.0020 sur 20 tranches, écart maximal 0.0086 ; Brier 0.052 (taux moyen pour tous : 0.128) |
+| Calibration par groupe | probabilité moyenne à moins de 0.4 point du taux observé dans chaque groupe d'au moins 500 lignes, sauf emprunteurs amérindiens (1.2 point, 810 lignes) |
+| Sans les 17 variables protégées (51 colonnes) | 0.91808 contre 0.92009 : −0.00201, moins bon sur 5 plis sur 5 |
+| Écart de probabilité moyenne entre emprunteurs blancs et noirs (observé : 12.9 points) | référence 12.9 points ; sans variables protégées 10.1 points |
+
+Retirer les variables protégées coûte 0.0020 d'AUC et laisse l'essentiel des écarts entre groupes : le reste du dossier les porte aussi.
+
 ## Méthode
 
 - **Critère** : gain moyen d'au moins 0.0003 (0.0005 pour les dernières expériences) et au moins 4 plis améliorés sur 5.

@@ -1,6 +1,6 @@
 # tools
 
-- `build_notebooks.py` assemble les cinq notebooks à partir du code de `cells/` et des textes de `textes/`.
+- `build_notebooks.py` assemble les six notebooks à partir du code de `cells/` et des textes de `textes/`.
 - `cells/*.py` : le code des expériences, une cellule par fichier. `naming_compatibility.py` fait le lien entre les noms courts utilisés dans les fichiers de résultats et les libellés affichés.
 - `textes/*.md` : le texte des notebooks, les cellules étant séparées par `<!-- cellule -->`.
 
@@ -20,3 +20,4 @@ Les notebooks générés n'ont pas de sorties. Ceux de la racine ont été exéc
 | `tuning_`, `screen_` | réglage et modes de calcul de CatBoost (notebook 03) |
 | `cv_`, `refit_` | modèles sur cinq plis, courbe d'apprentissage, réentraînement complet (notebook 04) |
 | `lgbm_`, `tabm_`, `pseudo_` | LightGBM, réseau de neurones, pseudo-étiquettes (notebook 05) |
+| `interp_` | valeurs de Shapley, calibration, groupes, modèle sans variables protégées (notebook 06) |

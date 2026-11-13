@@ -1,4 +1,4 @@
-"""Génère les cinq notebooks du projet.
+"""Génère les six notebooks du projet.
 
     python tools/build_notebooks.py <dossier_sortie>
 
@@ -1037,8 +1037,42 @@ TRAIN = {
     md(''),
 ]
 
+# ============================================================================= 06
+nb06 = [
+    md(''),
+    code(SETUP),
+    naming_compatibility_cell(),
+    md(TRAIN_NOTE),
+    code('''
+TRAIN = {
+    'protected_ablation': False,   # référence et modèle sans variables protégées, cinq folds, valeurs de Shapley (GPU, environ 75 min)
+}
+'''),
+    md(''),
+    raw_code(DATA),
+    raw_code(FEATURE_LOADER),
+    raw_code(RESULT_HELPERS + '\n\n' + OOF_HELPERS),
+    md(''),
+    raw_code(cell('interp_config')),
+    gated("TRAIN['protected_ablation']", cell('interp_run')),
+    md(''),
+    raw_code(cell('interp_shap')),
+    md(''),
+    md(''),
+    raw_code(cell('interp_calibration')),
+    md(''),
+    md(''),
+    raw_code(cell('interp_groups')),
+    md(''),
+    md(''),
+    raw_code(cell('interp_ablation')),
+    md(''),
+    md(''),
+]
+
 save(nb01, '01_data_exploration.ipynb')
 save(nb02, '02_feature_engineering.ipynb')
 save(nb03, '03_model_selection.ipynb')
 save(nb04, '04_final_model.ipynb')
 save(nb05, '05_error_analysis.ipynb')
+save(nb06, '06_interpretation.ipynb')
